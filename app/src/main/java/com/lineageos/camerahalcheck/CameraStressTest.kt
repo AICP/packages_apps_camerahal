@@ -1,9 +1,14 @@
 package com.lineageos.camerahalcheck
 
-import android.hardware.camera2.CameraManager
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
+import androidx.core.content.ContextCompat
 
 object CameraStressTest {
 
@@ -13,59 +18,98 @@ object CameraStressTest {
         onUpdate: (String) -> Unit,
         onDone: (Boolean) -> Unit
     ) {
-        val camMgr = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameras = camMgr.cameraIdList.toList()
+        val mainHandler = Handler(Looper.getMainLooper())
 
-        if (cameras.isEmpty()) {
-            onUpdate("No cameras found")
-            onDone(false)
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            mainHandler.post {
+                onUpdate("Camera permission not granted")
+                onDone(false)
+            }
             return
         }
 
-        val handler = Handler(Looper.getMainLooper())
+        val camMgr = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val cameras = try {
+            camMgr.cameraIdList.toList()
+        } catch (e: Exception) {
+            mainHandler.post {
+                onUpdate("Failed to get camera list")
+                onDone(false)
+            }
+            return
+        }
+
+        if (cameras.isEmpty()) {
+            mainHandler.post {
+                onUpdate("No cameras found")
+                onDone(false)
+            }
+            return
+        }
+
+        val cameraThread = HandlerThread("CameraStressTest").apply { start() }
+        val cameraHandler = Handler(cameraThread.looper)
+
         var ok = true
         var step = 0
+        val totalSteps = rounds * cameras.size
+
+        fun cleanup() {
+            cameraThread.quitSafely()
+        }
 
         fun next() {
-            if (step >= rounds * cameras.size) {
-                onDone(ok)
+            if (step >= totalSteps) {
+                cleanup()
+                mainHandler.post { onDone(ok) }
                 return
             }
 
             val camId = cameras[step % cameras.size]
-            onUpdate("Opening camera $camId (${step + 1}/${rounds * cameras.size})")
+            mainHandler.post { onUpdate("Opening camera $camId (${step + 1}/$totalSteps)") }
 
             try {
                 camMgr.openCamera(
                     camId,
-                    object : android.hardware.camera2.CameraDevice.StateCallback() {
-                        override fun onOpened(camera: android.hardware.camera2.CameraDevice) {
+                    object : CameraDevice.StateCallback() {
+                        override fun onOpened(camera: CameraDevice) {
                             camera.close()
-                            handler.postDelayed({ step++; next() }, 250)
+                            step++
+                            cameraHandler.postDelayed({ next() }, 250)
                         }
 
-                        override fun onDisconnected(camera: android.hardware.camera2.CameraDevice) {
+                        override fun onDisconnected(camera: CameraDevice) {
                             camera.close()
                             ok = false
-                            handler.post { step++; next() }
+                            step++
+                            cameraHandler.post { next() }
                         }
 
-                        override fun onError(camera: android.hardware.camera2.CameraDevice, error: Int) {
+                        override fun onError(camera: CameraDevice, error: Int) {
                             camera.close()
                             ok = false
-                            onUpdate("Camera $camId error=$error")
-                            handler.post { step++; next() }
+                            mainHandler.post { onUpdate("Camera $camId error=$error") }
+                            step++
+                            cameraHandler.post { next() }
                         }
                     },
-                    handler
+                    cameraHandler
                 )
+            } catch (e: SecurityException) {
+                ok = false
+                mainHandler.post { onUpdate("Camera permission denied") }
+                cleanup()
+                mainHandler.post { onDone(false) }
             } catch (t: Throwable) {
                 ok = false
-                onUpdate("Camera $camId crashed")
-                handler.post { step++; next() }
+                mainHandler.post { onUpdate("Camera $camId: ${t.message ?: "crashed"}") }
+                step++
+                cameraHandler.post { next() }
             }
         }
 
-        next()
+        cameraHandler.post { next() }
     }
 }
