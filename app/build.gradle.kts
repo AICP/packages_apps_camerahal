@@ -51,4 +51,7 @@ dependencies {
     // Material 3
     implementation("androidx.compose.material3:material3")
     implementation("com.google.android.material:material:1.12.0")
+
+    // System UI Controller
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
 }
