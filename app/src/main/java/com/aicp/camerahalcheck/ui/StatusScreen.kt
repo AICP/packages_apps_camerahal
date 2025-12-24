@@ -6,6 +6,7 @@ import android.content.pm.ApplicationInfo
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -13,18 +14,29 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Camera
+import androidx.compose.material.icons.rounded.CameraFront
+import androidx.compose.material.icons.rounded.CameraRear
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.FlashOn
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aicp.camerahalcheck.CameraInfoHelper
 import com.aicp.camerahalcheck.CameraStressTest
 import com.aicp.camerahalcheck.NativeCameraProbe
 import kotlinx.coroutines.delay
@@ -158,11 +171,14 @@ fun StatusScreen(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scrollState = rememberScrollState()
 
     var status by remember { mutableStateOf("Ready to diagnose") }
     var busy by remember { mutableStateOf(false) }
+    var showCameraInfo by remember { mutableStateOf(false) }
+    val cameraList = remember { CameraInfoHelper.getCameraList(context) }
 
-    val isSuccess = status.contains("OK", true) || status.contains("captured", true)
+    val isSuccess = status.contains("OK", true) || status.contains("captured", true) || status.contains("saved", true)
     val isError = status.contains("ERROR", true) || status.contains("FAILED", true) || status.contains("CRASHED", true)
 
     val statusColor by animateColorAsState(
@@ -231,11 +247,12 @@ fun StatusScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(pad)
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Box(
                     modifier = Modifier
@@ -363,8 +380,119 @@ fun StatusScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                // Camera Info Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.08f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showCameraInfo = !showCameraInfo
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Info,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Camera Info (${cameraList.size} detected)",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                            Icon(
+                                imageVector = if (showCameraInfo) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.5f)
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = showCameraInfo,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(top = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                cameraList.forEach { cam ->
+                                    CameraInfoRow(cam)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Footer
+                Text(
+                    text = "AICP • Camera HAL Checker",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun CameraInfoRow(cam: com.aicp.camerahalcheck.CameraInfo) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Color.White.copy(alpha = 0.05f),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (cam.facing == "Front") Icons.Rounded.CameraFront else Icons.Rounded.CameraRear,
+                contentDescription = null,
+                tint = Color(0xFF6C63FF),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = "${cam.facing} Camera (ID: ${cam.id})",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+                Text(
+                    text = "%.1f MP".format(cam.megapixels),
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+        }
+        if (cam.hasFlash) {
+            Icon(
+                imageVector = Icons.Rounded.FlashOn,
+                contentDescription = "Has flash",
+                tint = Color(0xFFFFA726),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
