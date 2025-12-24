@@ -4,7 +4,14 @@ package com.lineageos.camerahalcheck.ui
 
 import android.content.pm.ApplicationInfo
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -13,7 +20,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -23,6 +32,108 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lineageos.camerahalcheck.CameraStressTest
 import com.lineageos.camerahalcheck.NativeCameraProbe
+import kotlin.math.cos
+import kotlin.math.sin
+
+@Composable
+fun AnimatedBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "bg")
+
+    val offset1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "offset1"
+    )
+
+    val offset2 by infiniteTransition.animateFloat(
+        initialValue = 180f,
+        targetValue = -180f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(18000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "offset2"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0D0D1A),
+                    Color(0xFF1A1A2E),
+                    Color(0xFF16213E)
+                )
+            )
+        )
+
+        val rad1 = Math.toRadians(offset1.toDouble())
+        val rad2 = Math.toRadians(offset2.toDouble())
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF6C63FF).copy(alpha = 0.4f),
+                    Color.Transparent
+                ),
+                center = Offset(
+                    x = w * 0.3f + (cos(rad1) * w * 0.2f).toFloat(),
+                    y = h * 0.2f + (sin(rad1) * h * 0.1f).toFloat()
+                ),
+                radius = w * 0.6f
+            ),
+            center = Offset(
+                x = w * 0.3f + (cos(rad1) * w * 0.2f).toFloat(),
+                y = h * 0.2f + (sin(rad1) * h * 0.1f).toFloat()
+            ),
+            radius = w * 0.6f
+        )
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFE040FB).copy(alpha = 0.3f),
+                    Color.Transparent
+                ),
+                center = Offset(
+                    x = w * 0.8f + (cos(rad2) * w * 0.15f).toFloat(),
+                    y = h * 0.7f + (sin(rad2) * h * 0.1f).toFloat()
+                ),
+                radius = w * 0.5f
+            ),
+            center = Offset(
+                x = w * 0.8f + (cos(rad2) * w * 0.15f).toFloat(),
+                y = h * 0.7f + (sin(rad2) * h * 0.1f).toFloat()
+            ),
+            radius = w * 0.5f
+        )
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF00BCD4).copy(alpha = 0.25f),
+                    Color.Transparent
+                ),
+                center = Offset(
+                    x = w * 0.5f + (sin(rad1) * w * 0.1f).toFloat(),
+                    y = h * 0.5f + (cos(rad2) * h * 0.15f).toFloat()
+                ),
+                radius = w * 0.4f
+            ),
+            center = Offset(
+                x = w * 0.5f + (sin(rad1) * w * 0.1f).toFloat(),
+                y = h * 0.5f + (cos(rad2) * h * 0.15f).toFloat()
+            ),
+            radius = w * 0.4f
+        )
+    }
+}
 
 @Composable
 fun StatusScreen(
@@ -68,30 +179,19 @@ fun StatusScreen(
         },
         containerColor = Color.Transparent
     ) { pad ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF1A1A2E),
-                            Color(0xFF16213E),
-                            Color(0xFF0F3460)
-                        )
-                    )
-                )
-                .padding(pad)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AnimatedBackground()
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(pad)
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Status indicator circle
                 Box(
                     modifier = Modifier
                         .size((100 * indicatorScale).dp)
@@ -128,12 +228,13 @@ fun StatusScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Action cards
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .systemBlur(20f),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.1f)
+                        containerColor = Color.White.copy(alpha = 0.08f)
                     )
                 ) {
                     Column(
@@ -150,13 +251,13 @@ fun StatusScreen(
                         FilledTonalButton(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(56.dp),
                             enabled = !busy,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFF3F51B5),
+                                containerColor = Color(0xFF6C63FF),
                                 contentColor = Color.White,
-                                disabledContainerColor = Color(0xFF3F51B5).copy(alpha = 0.4f)
+                                disabledContainerColor = Color(0xFF6C63FF).copy(alpha = 0.4f)
                             ),
                             onClick = {
                                 busy = true
@@ -178,13 +279,13 @@ fun StatusScreen(
                         FilledTonalButton(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(56.dp),
                             enabled = !busy,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFF7C4DFF),
+                                containerColor = Color(0xFFE040FB),
                                 contentColor = Color.White,
-                                disabledContainerColor = Color(0xFF7C4DFF).copy(alpha = 0.4f)
+                                disabledContainerColor = Color(0xFFE040FB).copy(alpha = 0.4f)
                             ),
                             onClick = {
                                 busy = true
@@ -205,13 +306,13 @@ fun StatusScreen(
                         FilledTonalButton(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(56.dp),
                             enabled = !busy,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFF00897B),
+                                containerColor = Color(0xFF00BCD4),
                                 contentColor = Color.White,
-                                disabledContainerColor = Color(0xFF00897B).copy(alpha = 0.4f)
+                                disabledContainerColor = Color(0xFF00BCD4).copy(alpha = 0.4f)
                             ),
                             onClick = {
                                 onCaptureLogcat()
@@ -223,7 +324,7 @@ fun StatusScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
