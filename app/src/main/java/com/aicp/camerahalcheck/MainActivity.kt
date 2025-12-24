@@ -1,4 +1,4 @@
-package com.lineageos.camerahalcheck
+package com.aicp.camerahalcheck
 
 import android.Manifest
 import android.os.Bundle
@@ -12,7 +12,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.lineageos.camerahalcheck.ui.StatusScreen
+import com.aicp.camerahalcheck.ui.StatusScreen
 
 class MainActivity : ComponentActivity() {
 

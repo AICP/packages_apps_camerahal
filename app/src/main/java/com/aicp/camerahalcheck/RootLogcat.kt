@@ -1,4 +1,4 @@
-package com.lineageos.camerahalcheck
+package com.aicp.camerahalcheck
 
 import android.os.Build
 import java.io.File

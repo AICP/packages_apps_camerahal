@@ -1,0 +1,41 @@
+android_app {
+    name: "CameraHALChecker",
+    srcs: ["app/src/main/java/**/*.kt"],
+    resource_dirs: ["app/src/main/res"],
+    manifest: "app/src/main/AndroidManifest.xml",
+
+    platform_apis: true,
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+
+    static_libs: [
+        "androidx.core_core-ktx",
+        "androidx.activity_activity-compose",
+        "androidx.compose.ui_ui",
+        "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.foundation_foundation",
+        "accompanist_systemuicontroller",
+    ],
+
+    jni_libs: ["libtomaslib"],
+
+    optimize: {
+        enabled: true,
+        shrink: true,
+        proguard_flags_files: ["proguard-rules.pro"],
+    },
+
+    kotlincflags: ["-Xjvm-default=all"],
+}
+
+cc_library_shared {
+    name: "libtomaslib",
+    srcs: ["app/src/main/jni/tomaslib.cpp"],
+    shared_libs: [
+        "libcamera2ndk",
+        "liblog",
+    ],
+    system_ext_specific: true,
+}

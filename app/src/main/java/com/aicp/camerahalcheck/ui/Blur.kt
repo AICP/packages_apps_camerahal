@@ -1,4 +1,4 @@
-package com.lineageos.camerahalcheck.ui
+package com.aicp.camerahalcheck.ui
 
 import android.graphics.RenderEffect
 import android.graphics.Shader

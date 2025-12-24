@@ -1,6 +1,6 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
-package com.lineageos.camerahalcheck.ui
+package com.aicp.camerahalcheck.ui
 
 import android.content.pm.ApplicationInfo
 import androidx.compose.animation.animateColorAsState
@@ -30,8 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lineageos.camerahalcheck.CameraStressTest
-import com.lineageos.camerahalcheck.NativeCameraProbe
+import com.aicp.camerahalcheck.CameraStressTest
+import com.aicp.camerahalcheck.NativeCameraProbe
 import kotlin.math.cos
 import kotlin.math.sin
 

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.lineageos.camerahalcheck"
+    namespace = "com.aicp.camerahalcheck"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.lineageos.camerahalcheck"
+        applicationId = "com.aicp.camerahalcheck"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

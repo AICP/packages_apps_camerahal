@@ -1,4 +1,4 @@
-package com.lineageos.camerahalcheck
+package com.aicp.camerahalcheck
 
 data class CameraModel(
     val id: String,
